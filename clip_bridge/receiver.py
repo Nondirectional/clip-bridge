@@ -13,7 +13,13 @@ import socket
 import threading
 from typing import Callable, Optional
 
-from clip_bridge.protocol import PREFIX, SEPARATOR, MAX_MESSAGE_SIZE
+from clip_bridge.protocol import (
+    PREFIX,
+    SEPARATOR,
+    MAX_MESSAGE_SIZE,
+    decode_message,
+    ProtocolError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +189,12 @@ class Receiver:
         finally:
             self._close_client()
 
-    def _extract_message(self) -> Optional[bytes]:
-        """Extract a complete message from the buffer.
+    def _find_message_size(self) -> Optional[int]:
+        """Find the size of a complete message in the buffer.
 
         Returns:
-            Decoded message content if a complete message is available,
-            None if more data is needed.
+            Total message size including header if a complete message is available,
+            None if more data is needed or if the buffer is invalid.
         """
         buffer = bytes(self._buffer)
 
@@ -236,13 +242,34 @@ class Receiver:
             # Need more data
             return None
 
-        # Extract content
-        content = buffer[content_start:total_size]
+        return total_size
+
+    def _extract_message(self) -> Optional[bytes]:
+        """Extract a complete message from the buffer.
+
+        Uses protocol.decode_message() for decoding and validation.
+
+        Returns:
+            Decoded message content if a complete message is available,
+            None if more data is needed.
+        """
+        # Find where the complete message ends
+        total_size = self._find_message_size()
+        if total_size is None:
+            return None
+
+        # Extract the complete message bytes
+        message_bytes = bytes(self._buffer[:total_size])
 
         # Remove the processed message from buffer
         del self._buffer[:total_size]
 
-        return content
+        # Use protocol.decode_message() for decoding and validation
+        try:
+            return decode_message(message_bytes)
+        except ProtocolError as e:
+            logger.warning(f"[WARNING] Protocol error: {e}")
+            return None
 
     def _close_client(self) -> None:
         """Close the client socket if open."""
