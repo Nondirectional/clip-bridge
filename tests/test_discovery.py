@@ -12,6 +12,7 @@ from clip_bridge.discovery import (
     decode_broadcast,
     encode_broadcast,
     DiscoveryConfig,
+    DiscoveryError,
     PeerDevice,
 )
 
@@ -35,18 +36,18 @@ class TestEncodeBroadcast:
             assert result == expected
 
     def test_encode_broadcast_invalid_port_zero(self):
-        """Test encoding with port 0 raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid port: 0"):
+        """Test encoding with port 0 raises DiscoveryError."""
+        with pytest.raises(DiscoveryError, match="Invalid port: 0"):
             encode_broadcast(0)
 
     def test_encode_broadcast_invalid_port_negative(self):
-        """Test encoding with negative port raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid port: -1"):
+        """Test encoding with negative port raises DiscoveryError."""
+        with pytest.raises(DiscoveryError, match="Invalid port: -1"):
             encode_broadcast(-1)
 
     def test_encode_broadcast_invalid_port_too_large(self):
-        """Test encoding with port > 65535 raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid port: 65536"):
+        """Test encoding with port > 65535 raises DiscoveryError."""
+        with pytest.raises(DiscoveryError, match="Invalid port: 65536"):
             encode_broadcast(65536)
 
 
@@ -68,38 +69,38 @@ class TestDecodeBroadcast:
             assert result == port
 
     def test_decode_broadcast_invalid_prefix(self):
-        """Test decoding message with invalid prefix raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid broadcast prefix"):
+        """Test decoding message with invalid prefix raises DiscoveryError."""
+        with pytest.raises(DiscoveryError, match="Invalid broadcast prefix"):
             decode_broadcast(b"INVALID:9999")
 
     def test_decode_broadcast_empty_port(self):
-        """Test decoding message with empty port raises ValueError."""
+        """Test decoding message with empty port raises DiscoveryError."""
         data = BROADCAST_PREFIX
-        with pytest.raises(ValueError, match="Empty port"):
+        with pytest.raises(DiscoveryError, match="Empty port"):
             decode_broadcast(data)
 
     def test_decode_broadcast_invalid_format(self):
-        """Test decoding message with non-numeric port raises ValueError."""
+        """Test decoding message with non-numeric port raises DiscoveryError."""
         data = BROADCAST_PREFIX + b"abc"
-        with pytest.raises(ValueError, match="Invalid port format: abc"):
+        with pytest.raises(DiscoveryError, match="Invalid port format: abc"):
             decode_broadcast(data)
 
     def test_decode_broadcast_invalid_port_zero(self):
-        """Test decoding message with port 0 raises ValueError."""
+        """Test decoding message with port 0 raises DiscoveryError."""
         data = BROADCAST_PREFIX + b"0"
-        with pytest.raises(ValueError, match="Invalid port number: 0"):
+        with pytest.raises(DiscoveryError, match="Invalid port number: 0"):
             decode_broadcast(data)
 
     def test_decode_broadcast_invalid_port_negative(self):
-        """Test decoding message with negative port raises ValueError."""
+        """Test decoding message with negative port raises DiscoveryError."""
         data = BROADCAST_PREFIX + b"-1"
-        with pytest.raises(ValueError, match="Invalid port number: -1"):
+        with pytest.raises(DiscoveryError, match="Invalid port number: -1"):
             decode_broadcast(data)
 
     def test_decode_broadcast_invalid_port_too_large(self):
-        """Test decoding message with port > 65535 raises ValueError."""
+        """Test decoding message with port > 65535 raises DiscoveryError."""
         data = BROADCAST_PREFIX + b"65536"
-        with pytest.raises(ValueError, match="Invalid port number: 65536"):
+        with pytest.raises(DiscoveryError, match="Invalid port number: 65536"):
             decode_broadcast(data)
 
     def test_decode_encode_roundtrip(self):

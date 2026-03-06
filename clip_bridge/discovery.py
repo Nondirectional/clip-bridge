@@ -8,7 +8,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 # Broadcast protocol constants
-BROADCAST_PREFIX = b"CLIP-HELLO:"
+BROADCAST_PREFIX: bytes = b"CLIP-HELLO:"
+
+
+class DiscoveryError(Exception):
+    """Exception raised for discovery protocol violations."""
+    pass
 
 
 def encode_broadcast(port: int) -> bytes:
@@ -21,10 +26,10 @@ def encode_broadcast(port: int) -> bytes:
         Broadcast message bytes.
 
     Raises:
-        ValueError: If port is invalid.
+        DiscoveryError: If port is invalid.
     """
     if not 1 <= port <= 65535:
-        raise ValueError(f"Invalid port: {port}")
+        raise DiscoveryError(f"Invalid port: {port}")
     return BROADCAST_PREFIX + str(port).encode()
 
 
@@ -38,22 +43,22 @@ def decode_broadcast(data: bytes) -> int:
         Peer listening port.
 
     Raises:
-        ValueError: If message format is invalid.
+        DiscoveryError: If message format is invalid.
     """
     if not data.startswith(BROADCAST_PREFIX):
-        raise ValueError(f"Invalid broadcast prefix: {data[:20]}")
+        raise DiscoveryError(f"Invalid broadcast prefix: {data[:20]}")
 
     port_str = data[len(BROADCAST_PREFIX):].decode()
     if not port_str:
-        raise ValueError("Empty port")
+        raise DiscoveryError("Empty port")
 
     try:
         port = int(port_str)
     except ValueError as e:
-        raise ValueError(f"Invalid port format: {port_str}") from e
+        raise DiscoveryError(f"Invalid port format: {port_str}") from e
 
     if not 1 <= port <= 65535:
-        raise ValueError(f"Invalid port number: {port}")
+        raise DiscoveryError(f"Invalid port number: {port}")
 
     return port
 
