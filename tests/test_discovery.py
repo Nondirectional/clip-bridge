@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import socket
+import threading
 import time
 
 import pytest
@@ -14,6 +16,7 @@ from clip_bridge.discovery import (
     DiscoveryConfig,
     DiscoveryError,
     PeerDevice,
+    UDPAutoDiscovery,
 )
 
 
@@ -150,3 +153,133 @@ class TestDiscoveryConfig:
         assert config.broadcast_port == 8888
         assert config.timeout == 5.0
         assert config.broadcast_interval == 1.0
+
+
+class TestUDPAutoDiscovery:
+    """Test UDPAutoDiscovery class."""
+
+    def test_listener_receives_broadcast(self):
+        """Test listener receives and decodes a valid broadcast."""
+        config = DiscoveryConfig(broadcast_port=19997)
+        listener = UDPAutoDiscovery(config, local_port=9998)
+
+        # Create a sender socket to broadcast
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sender.settimeout(1.0)
+
+        peer_result = []
+        listen_done = threading.Event()
+
+        def listen_thread():
+            peer = listener._listen_once()
+            peer_result.append(peer)
+            listen_done.set()
+
+        try:
+            # Start listening thread first
+            listener_thread = threading.Thread(target=listen_thread)
+            listener_thread.start()
+
+            # Small delay to ensure listener is bound
+            time.sleep(0.1)
+
+            # Send broadcast
+            message = encode_broadcast(9999)
+            sender.sendto(message, ("<broadcast>", 19997))
+
+            # Wait for listen to complete
+            listen_done.wait(timeout=2.0)
+            listener_thread.join(timeout=1.0)
+
+            peer = peer_result[0] if peer_result else None
+            assert peer is not None
+            assert peer.port == 9999
+            # IP can be any valid address depending on network configuration
+            assert peer.ip is not None and len(peer.ip) > 0
+            assert peer.last_seen > 0
+
+        finally:
+            sender.close()
+
+    def test_listener_filters_invalid_messages(self):
+        """Test listener filters out messages with invalid format."""
+        config = DiscoveryConfig(broadcast_port=19998)
+        listener = UDPAutoDiscovery(config, local_port=9999)
+
+        # Create a sender socket
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sender.settimeout(1.0)
+
+        peer_result = []
+        listen_done = threading.Event()
+
+        def listen_thread():
+            peer = listener._listen_once()
+            peer_result.append(peer)
+            listen_done.set()
+
+        try:
+            # Start listening thread first
+            listener_thread = threading.Thread(target=listen_thread)
+            listener_thread.start()
+
+            # Small delay to ensure listener is bound
+            time.sleep(0.1)
+
+            # Send invalid broadcast (wrong prefix)
+            sender.sendto(b"INVALID:9999", ("<broadcast>", 19998))
+
+            # Wait for listen to complete
+            listen_done.wait(timeout=2.0)
+            listener_thread.join(timeout=1.0)
+
+            peer = peer_result[0] if peer_result else None
+            # Should return None (invalid message filtered)
+            assert peer is None
+
+        finally:
+            sender.close()
+
+    def test_listener_filters_own_broadcast(self):
+        """Test listener filters out broadcasts from itself (same port)."""
+        config = DiscoveryConfig(broadcast_port=19999)
+        # Local port is 9999, so we should filter broadcasts with port 9999
+        listener = UDPAutoDiscovery(config, local_port=9999)
+
+        # Create a sender socket
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sender.settimeout(1.0)
+
+        peer_result = []
+        listen_done = threading.Event()
+
+        def listen_thread():
+            peer = listener._listen_once()
+            peer_result.append(peer)
+            listen_done.set()
+
+        try:
+            # Start listening thread first
+            listener_thread = threading.Thread(target=listen_thread)
+            listener_thread.start()
+
+            # Small delay to ensure listener is bound
+            time.sleep(0.1)
+
+            # Send broadcast with the same port as local_port
+            message = encode_broadcast(9999)
+            sender.sendto(message, ("<broadcast>", 19999))
+
+            # Wait for listen to complete
+            listen_done.wait(timeout=2.0)
+            listener_thread.join(timeout=1.0)
+
+            peer = peer_result[0] if peer_result else None
+            # Should return None (own broadcast filtered)
+            assert peer is None
+
+        finally:
+            sender.close()

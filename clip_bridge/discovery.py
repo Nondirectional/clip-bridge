@@ -5,7 +5,13 @@ Provides data structures and protocol for auto-discovery of peer devices on the 
 
 from __future__ import annotations
 
+import logging
+import socket
+import time
 from dataclasses import dataclass
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # Broadcast protocol constants
 BROADCAST_PREFIX: bytes = b"CLIP-HELLO:"
@@ -91,3 +97,55 @@ class PeerDevice:
     ip: str
     port: int
     last_seen: float
+
+
+class UDPAutoDiscovery:
+    """UDP automatic discovery listener."""
+
+    def __init__(self, config: DiscoveryConfig, local_port: int):
+        """Initialize auto discovery.
+
+        Args:
+            config: Discovery configuration.
+            local_port: Local listening port (used to filter own broadcasts).
+        """
+        self._config = config
+        self._local_port = local_port
+        self._broadcast_socket: Optional[socket.socket] = None
+        self._listen_socket: Optional[socket.socket] = None
+
+    def _listen_once(self) -> Optional[PeerDevice]:
+        """Listen once for broadcast.
+
+        Returns:
+            Discovered device info, or None on timeout.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.settimeout(1.0)  # 1 second timeout
+
+        try:
+            sock.bind(("0.0.0.0", self._config.broadcast_port))
+            data, addr = sock.recvfrom(1024)
+
+            # Parse broadcast message
+            try:
+                port = decode_broadcast(data)
+            except DiscoveryError:
+                logger.debug(f"Received invalid broadcast from {addr}")
+                return None
+
+            # Filter out own broadcast
+            if port == self._local_port:
+                logger.debug(f"Filtered own broadcast (port {port})")
+                return None
+
+            # Log discovered device
+            ip = addr[0]
+            logger.info(f"Discovered peer: {ip}:{port}")
+            return PeerDevice(ip=ip, port=port, last_seen=time.time())
+
+        except socket.timeout:
+            return None
+        finally:
+            sock.close()
