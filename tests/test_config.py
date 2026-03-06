@@ -210,6 +210,35 @@ remote_port: 65535
         assert config.local_port == 65535
         assert config.remote_port == 65535
 
+    def test_config_invalid_type_local_port_not_a_number(self, tmp_path):
+        """Raise ConfigError when local_port is not a valid number."""
+        config_file = tmp_path / "invalid_type_port.yaml"
+        config_file.write_text("""
+local_port: "not_a_number"
+remote_host: 192.168.1.100
+remote_port: 9998
+""")
+
+        with pytest.raises(ConfigError) as exc_info:
+            Config.load(str(config_file))
+
+        assert "Invalid value type" in str(exc_info.value)
+
+    def test_config_invalid_type_poll_interval_not_a_number(self, tmp_path):
+        """Raise ConfigError when poll_interval is not a valid number."""
+        config_file = tmp_path / "invalid_type_poll_interval.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+poll_interval: "not_a_float"
+""")
+
+        with pytest.raises(ConfigError) as exc_info:
+            Config.load(str(config_file))
+
+        assert "Invalid value type" in str(exc_info.value)
+
 
 class TestConfigSave:
     """Tests for Config.save() method."""

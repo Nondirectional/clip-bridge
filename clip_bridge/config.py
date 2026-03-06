@@ -5,7 +5,6 @@ sharing tool.
 """
 
 from dataclasses import asdict, dataclass
-from typing import Any
 
 import yaml
 
@@ -43,7 +42,7 @@ class Config:
         self._validate_remote_host()
 
     @classmethod
-    def load(cls, path: str) -> "Config":
+    def load(cls: type["Config"], path: str) -> "Config":
         """Load configuration from a YAML file.
 
         Args:
@@ -75,14 +74,17 @@ class Config:
                 f"Missing required fields: {', '.join(missing_fields)}"
             )
 
-        return cls(
-            local_port=int(data["local_port"]),
-            remote_host=str(data["remote_host"]),
-            remote_port=int(data["remote_port"]),
-            poll_interval=float(data.get("poll_interval", 0.5)),
-            sync_cooldown=float(data.get("sync_cooldown", 2.0)),
-            max_size=int(data.get("max_size", 1048576)),
-        )
+        try:
+            return cls(
+                local_port=int(data["local_port"]),
+                remote_host=str(data["remote_host"]),
+                remote_port=int(data["remote_port"]),
+                poll_interval=float(data.get("poll_interval", 0.5)),
+                sync_cooldown=float(data.get("sync_cooldown", 2.0)),
+                max_size=int(data.get("max_size", 1048576)),
+            )
+        except (ValueError, TypeError) as e:
+            raise ConfigError(f"Invalid value type in configuration: {e}") from e
 
     def save(self, path: str) -> None:
         """Save configuration to a YAML file.
