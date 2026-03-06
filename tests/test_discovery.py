@@ -1,6 +1,7 @@
+"""Tests for discovery module.
 """
-Tests for discovery module.
-"""
+
+from __future__ import annotations
 
 import time
 
@@ -12,7 +13,7 @@ from clip_bridge.discovery import DiscoveryConfig, PeerDevice
 class TestPeerDevice:
     """Test PeerDevice dataclass."""
 
-    def test_peer_device_creation(self) -> None:
+    def test_peer_device_creation(self):
         """Test creating a PeerDevice with all fields."""
         ip = "192.168.1.100"
         port = 9999
@@ -28,7 +29,7 @@ class TestPeerDevice:
 class TestDiscoveryConfig:
     """Test DiscoveryConfig dataclass."""
 
-    def test_discovery_config_defaults(self) -> None:
+    def test_discovery_config_defaults(self):
         """Test DiscoveryConfig with default values."""
         config = DiscoveryConfig()
 
@@ -36,7 +37,7 @@ class TestDiscoveryConfig:
         assert config.timeout == 3.0
         assert config.broadcast_interval == 0.5
 
-    def test_discovery_config_custom(self) -> None:
+    def test_discovery_config_custom(self):
         """Test DiscoveryConfig with custom values."""
         config = DiscoveryConfig(
             broadcast_port=8888,

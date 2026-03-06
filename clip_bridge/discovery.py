@@ -1,25 +1,38 @@
-"""
-Device discovery module for Clip Bridge.
+"""Device discovery module for Clip Bridge.
 
 Provides data structures for auto-discovery of peer devices on the local network.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 
 
 @dataclass
 class DiscoveryConfig:
-    """Auto-discovery configuration."""
+    """Auto-discovery configuration.
 
-    broadcast_port: int = 9997  # Broadcast listening port
-    timeout: float = 3.0  # Discovery timeout (seconds)
-    broadcast_interval: float = 0.5  # Broadcast interval (seconds)
+    Attributes:
+        broadcast_port: Broadcast listening port.
+        timeout: Discovery timeout in seconds.
+        broadcast_interval: Broadcast interval in seconds.
+    """
+
+    broadcast_port: int = 9997
+    timeout: float = 3.0
+    broadcast_interval: float = 0.5
 
 
 @dataclass
 class PeerDevice:
-    """Information about a discovered peer device."""
+    """Information about a discovered peer device.
 
-    ip: str  # Device IP address
-    port: int  # Device listening port
-    last_seen: float  # Last discovery time (Unix timestamp)
+    Attributes:
+        ip: Device IP address.
+        port: Device listening port.
+        last_seen: Last discovery time as Unix timestamp.
+    """
+
+    ip: str
+    port: int
+    last_seen: float
