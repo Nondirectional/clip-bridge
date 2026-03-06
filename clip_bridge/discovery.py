@@ -160,3 +160,35 @@ class UDPAutoDiscovery:
             return None
         finally:
             sock.close()
+
+    def discover(self) -> Optional[PeerDevice]:
+        """Execute auto-discovery.
+
+        Within timeout period:
+        1. Continuously broadcast own presence
+        2. Listen for broadcasts from other devices
+        3. Return immediately upon discovering a device
+
+        Returns:
+            Discovered device info, or None if not found.
+        """
+        logger.info(f"[INFO] Starting auto-discovery (timeout={self._config.timeout}s)...")
+
+        start_time = time.time()
+        discovered_peer: Optional[PeerDevice] = None
+
+        while time.time() - start_time < self._config.timeout:
+            # Try listening first (a device may already be broadcasting)
+            peer = self._listen_once()
+            if peer:
+                logger.info(f"[INFO] Discovered peer: {peer.ip}:{peer.port}")
+                return peer
+
+            # Broadcast own presence
+            self._broadcast_presence()
+
+            # Wait before next attempt
+            time.sleep(self._config.broadcast_interval)
+
+        logger.info("[INFO] Auto-discovery timeout, no peer found")
+        return None

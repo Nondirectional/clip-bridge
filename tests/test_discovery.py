@@ -338,3 +338,103 @@ class TestUDPAutoDiscovery:
 
         finally:
             listener_sock.close()
+
+
+class TestDiscover:
+    """Test discover() method - main discovery flow."""
+
+    def test_discover_peer_found(self):
+        """Test successful peer discovery."""
+        config = DiscoveryConfig(
+            broadcast_port=19994,
+            timeout=2.0,
+            broadcast_interval=0.2,
+        )
+        discovery = UDPAutoDiscovery(config, local_port=9998)
+
+        # Create a mock peer that broadcasts on port 9999
+        broadcast_sent = threading.Event()
+
+        def mock_peer():
+            peer_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            peer_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            # Wait a bit then broadcast
+            time.sleep(0.3)
+            message = encode_broadcast(9999)
+            peer_sock.sendto(message, ("<broadcast>", 19994))
+            broadcast_sent.set()
+            peer_sock.close()
+
+        peer_thread = threading.Thread(target=mock_peer)
+        peer_thread.start()
+
+        try:
+            peer = discovery.discover()
+            assert peer is not None
+            assert peer.port == 9999
+            assert peer.ip is not None and len(peer.ip) > 0
+            assert peer.last_seen > 0
+            assert broadcast_sent.is_set()
+        finally:
+            peer_thread.join(timeout=2.0)
+
+    def test_discover_peer_timeout(self):
+        """Test discovery timeout when no peer is found."""
+        config = DiscoveryConfig(
+            broadcast_port=19993,
+            timeout=0.5,  # Short timeout for faster test
+            broadcast_interval=0.2,
+        )
+        discovery = UDPAutoDiscovery(config, local_port=9998)
+
+        # No peer broadcasting, should timeout and return None
+        peer = discovery.discover()
+        assert peer is None
+
+    def test_discover_peer_multiple(self):
+        """Test that discovery returns first discovered peer when multiple are present."""
+        config = DiscoveryConfig(
+            broadcast_port=19992,
+            timeout=2.0,
+            broadcast_interval=0.2,
+        )
+        discovery = UDPAutoDiscovery(config, local_port=9998)
+
+        # Track which peer was discovered
+        discovered_ports = []
+        original_listen_once = discovery._listen_once
+
+        def mock_listen_once():
+            peer = original_listen_once()
+            if peer:
+                discovered_ports.append(peer.port)
+            return peer
+
+        discovery._listen_once = mock_listen_once
+
+        # Create multiple mock peers broadcasting at slightly different times
+        def mock_peer(port: int, delay: float):
+            time.sleep(delay)
+            peer_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            peer_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            message = encode_broadcast(port)
+            peer_sock.sendto(message, ("<broadcast>", 19992))
+            peer_sock.close()
+
+        # Start multiple peers with different delays
+        threads = []
+        for port, delay in [(9999, 0.3), (9990, 0.4), (9980, 0.5)]:
+            t = threading.Thread(target=mock_peer, args=(port, delay))
+            t.start()
+            threads.append(t)
+
+        try:
+            peer = discovery.discover()
+            assert peer is not None
+            # Should return the first peer (port 9999 which broadcasts first)
+            assert peer.port == 9999
+            # Should only have one discovery
+            assert len(discovered_ports) == 1
+        finally:
+            for t in threads:
+                t.join(timeout=2.0)
