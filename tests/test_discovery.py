@@ -7,7 +7,108 @@ import time
 
 import pytest
 
-from clip_bridge.discovery import DiscoveryConfig, PeerDevice
+from clip_bridge.discovery import (
+    BROADCAST_PREFIX,
+    decode_broadcast,
+    encode_broadcast,
+    DiscoveryConfig,
+    PeerDevice,
+)
+
+
+class TestEncodeBroadcast:
+    """Test encode_broadcast function."""
+
+    def test_encode_broadcast(self):
+        """Test encoding a broadcast message with port 9999."""
+        port = 9999
+        result = encode_broadcast(port)
+
+        expected = BROADCAST_PREFIX + b"9999"
+        assert result == expected
+
+    def test_encode_broadcast_different_port(self):
+        """Test encoding broadcast messages with different ports."""
+        for port in [1, 80, 443, 9998, 9999, 65535]:
+            result = encode_broadcast(port)
+            expected = BROADCAST_PREFIX + str(port).encode()
+            assert result == expected
+
+    def test_encode_broadcast_invalid_port_zero(self):
+        """Test encoding with port 0 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid port: 0"):
+            encode_broadcast(0)
+
+    def test_encode_broadcast_invalid_port_negative(self):
+        """Test encoding with negative port raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid port: -1"):
+            encode_broadcast(-1)
+
+    def test_encode_broadcast_invalid_port_too_large(self):
+        """Test encoding with port > 65535 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid port: 65536"):
+            encode_broadcast(65536)
+
+
+class TestDecodeBroadcast:
+    """Test decode_broadcast function."""
+
+    def test_decode_broadcast_valid(self):
+        """Test decoding a valid broadcast message."""
+        data = BROADCAST_PREFIX + b"9999"
+        result = decode_broadcast(data)
+
+        assert result == 9999
+
+    def test_decode_broadcast_different_ports(self):
+        """Test decoding broadcast messages with different ports."""
+        for port in [1, 80, 443, 9998, 9999, 65535]:
+            data = BROADCAST_PREFIX + str(port).encode()
+            result = decode_broadcast(data)
+            assert result == port
+
+    def test_decode_broadcast_invalid_prefix(self):
+        """Test decoding message with invalid prefix raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid broadcast prefix"):
+            decode_broadcast(b"INVALID:9999")
+
+    def test_decode_broadcast_empty_port(self):
+        """Test decoding message with empty port raises ValueError."""
+        data = BROADCAST_PREFIX
+        with pytest.raises(ValueError, match="Empty port"):
+            decode_broadcast(data)
+
+    def test_decode_broadcast_invalid_format(self):
+        """Test decoding message with non-numeric port raises ValueError."""
+        data = BROADCAST_PREFIX + b"abc"
+        with pytest.raises(ValueError, match="Invalid port format: abc"):
+            decode_broadcast(data)
+
+    def test_decode_broadcast_invalid_port_zero(self):
+        """Test decoding message with port 0 raises ValueError."""
+        data = BROADCAST_PREFIX + b"0"
+        with pytest.raises(ValueError, match="Invalid port number: 0"):
+            decode_broadcast(data)
+
+    def test_decode_broadcast_invalid_port_negative(self):
+        """Test decoding message with negative port raises ValueError."""
+        data = BROADCAST_PREFIX + b"-1"
+        with pytest.raises(ValueError, match="Invalid port number: -1"):
+            decode_broadcast(data)
+
+    def test_decode_broadcast_invalid_port_too_large(self):
+        """Test decoding message with port > 65535 raises ValueError."""
+        data = BROADCAST_PREFIX + b"65536"
+        with pytest.raises(ValueError, match="Invalid port number: 65536"):
+            decode_broadcast(data)
+
+    def test_decode_encode_roundtrip(self):
+        """Test encoding and decoding are inverse operations."""
+        original_port = 9999
+        encoded = encode_broadcast(original_port)
+        decoded_port = decode_broadcast(encoded)
+
+        assert decoded_port == original_port
 
 
 class TestPeerDevice:

@@ -1,11 +1,62 @@
 """Device discovery module for Clip Bridge.
 
-Provides data structures for auto-discovery of peer devices on the local network.
+Provides data structures and protocol for auto-discovery of peer devices on the local network.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+# Broadcast protocol constants
+BROADCAST_PREFIX = b"CLIP-HELLO:"
+BROADCAST_SEPARATOR = b":"
+
+
+def encode_broadcast(port: int) -> bytes:
+    """Encode a broadcast message.
+
+    Args:
+        port: Local listening port.
+
+    Returns:
+        Broadcast message bytes.
+
+    Raises:
+        ValueError: If port is invalid.
+    """
+    if not 1 <= port <= 65535:
+        raise ValueError(f"Invalid port: {port}")
+    return BROADCAST_PREFIX + str(port).encode()
+
+
+def decode_broadcast(data: bytes) -> int:
+    """Decode a broadcast message.
+
+    Args:
+        data: Received broadcast message bytes.
+
+    Returns:
+        Peer listening port.
+
+    Raises:
+        ValueError: If message format is invalid.
+    """
+    if not data.startswith(BROADCAST_PREFIX):
+        raise ValueError(f"Invalid broadcast prefix: {data[:20]}")
+
+    port_str = data[len(BROADCAST_PREFIX):].decode()
+    if not port_str:
+        raise ValueError("Empty port")
+
+    try:
+        port = int(port_str)
+    except ValueError as e:
+        raise ValueError(f"Invalid port format: {port_str}") from e
+
+    if not 1 <= port <= 65535:
+        raise ValueError(f"Invalid port number: {port}")
+
+    return port
 
 
 @dataclass
