@@ -9,7 +9,6 @@ from dataclasses import dataclass
 
 # Broadcast protocol constants
 BROADCAST_PREFIX = b"CLIP-HELLO:"
-BROADCAST_SEPARATOR = b":"
 
 
 def encode_broadcast(port: int) -> bytes:
