@@ -292,3 +292,49 @@ class TestUDPAutoDiscovery:
         # 不发送任何广播，应该超时返回 None
         peer = discovery._listen_once()
         assert peer is None
+
+    def test_broadcast_presence(self):
+        """Test _broadcast_presence sends correct broadcast message."""
+        config = DiscoveryConfig(broadcast_port=19995)
+        discovery = UDPAutoDiscovery(config, local_port=19999)
+
+        # Create a listener socket to receive the broadcast
+        listener_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        listener_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener_sock.settimeout(2.0)
+
+        received_data = []
+        receive_done = threading.Event()
+
+        def receive_thread():
+            try:
+                listener_sock.bind(("0.0.0.0", 19995))
+                data, _ = listener_sock.recvfrom(1024)
+                received_data.append(data)
+            except socket.timeout:
+                pass
+            finally:
+                receive_done.set()
+
+        try:
+            # Start receiving thread first
+            receiver = threading.Thread(target=receive_thread)
+            receiver.start()
+
+            # Small delay to ensure listener is bound
+            time.sleep(0.1)
+
+            # Broadcast presence
+            discovery._broadcast_presence()
+
+            # Wait for receive to complete
+            receive_done.wait(timeout=2.0)
+            receiver.join(timeout=1.0)
+
+            # Verify broadcast content
+            assert len(received_data) == 1
+            data = received_data[0]
+            assert data == encode_broadcast(19999)
+
+        finally:
+            listener_sock.close()

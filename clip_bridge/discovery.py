@@ -111,6 +111,19 @@ class UDPAutoDiscovery:
         self._config = config
         self._local_port = local_port
 
+    def _broadcast_presence(self) -> None:
+        """Broadcast own presence to the network."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        try:
+            message = encode_broadcast(self._local_port)
+            # Broadcast to network broadcast address
+            sock.sendto(message, ("255.255.255.255", self._config.broadcast_port))
+            logger.info(f"[INFO] Broadcasted presence on port {self._local_port}")
+        finally:
+            sock.close()
+
     def _listen_once(self) -> Optional[PeerDevice]:
         """Listen once for broadcast.
 
