@@ -283,3 +283,12 @@ class TestUDPAutoDiscovery:
 
         finally:
             sender.close()
+
+    def test_listener_timeout(self):
+        """Test that listener returns None when timeout occurs."""
+        config = DiscoveryConfig(broadcast_port=19996)
+        discovery = UDPAutoDiscovery(config, local_port=9999)
+
+        # 不发送任何广播，应该超时返回 None
+        peer = discovery._listen_once()
+        assert peer is None

@@ -9,7 +9,6 @@ import logging
 import socket
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +110,6 @@ class UDPAutoDiscovery:
         """
         self._config = config
         self._local_port = local_port
-        self._broadcast_socket: Optional[socket.socket] = None
-        self._listen_socket: Optional[socket.socket] = None
 
     def _listen_once(self) -> Optional[PeerDevice]:
         """Listen once for broadcast.
@@ -142,7 +139,7 @@ class UDPAutoDiscovery:
 
             # Log discovered device
             ip = addr[0]
-            logger.info(f"Discovered peer: {ip}:{port}")
+            logger.info(f"[INFO] Discovered peer: {ip}:{port}")
             return PeerDevice(ip=ip, port=port, last_seen=time.time())
 
         except socket.timeout:
