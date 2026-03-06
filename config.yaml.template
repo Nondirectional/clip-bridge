@@ -1,0 +1,39 @@
+# Clip Bridge Configuration Template
+#
+# Copy this file to create your configuration:
+#   Mac: cp config.yaml.template mac.yaml
+#   Ubuntu: cp config.yaml.template ubuntu.yaml
+#
+# Then edit the values below according to your setup.
+
+# Local port to listen on for incoming clipboard data
+# Mac example: 9999
+# Ubuntu example: 9998
+local_port: 9999
+
+# Remote peer IP address or hostname
+# Use the IP address of the other machine on your LAN
+# Examples: 192.168.1.100, 10.0.0.5
+remote_host: 192.168.1.100
+
+# Remote peer port to connect to
+# This should match the local_port on the other machine
+# Mac connects to Ubuntu's port (e.g., 9998)
+# Ubuntu connects to Mac's port (e.g., 9999)
+remote_port: 9998
+
+# Clipboard polling interval in seconds
+# How often to check for local clipboard changes
+# Default: 0.5 (checks twice per second)
+poll_interval: 0.5
+
+# Anti-loop cooldown time in seconds
+# Prevents sync loops when both machines receive the same content
+# Should be longer than the round-trip sync time
+# Default: 2.0
+sync_cooldown: 2.0
+
+# Maximum message size in bytes
+# Prevents sending very large clipboard content
+# Default: 1048576 (1 MB)
+max_size: 1048576
