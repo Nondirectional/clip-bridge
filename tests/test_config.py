@@ -291,3 +291,134 @@ class TestConfigSave:
         # Verify it can be loaded back
         loaded = Config.load(str(config_file))
         assert loaded.local_port == 9999
+
+
+class TestAutoDiscoveryConfig:
+    """Tests for auto-discovery configuration options."""
+
+    def test_config_load_with_auto_discovery_fields(self, tmp_path):
+        """Load config with all auto-discovery fields specified."""
+        config_file = tmp_path / "auto_discovery.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+auto_discover: false
+discovery_timeout: 5.0
+broadcast_port: 9997
+""")
+
+        config = Config.load(str(config_file))
+
+        assert config.auto_discover is False
+        assert config.discovery_timeout == 5.0
+        assert config.broadcast_port == 9997
+
+    def test_config_auto_discover_defaults(self, tmp_path):
+        """Verify default values for auto-discovery fields."""
+        config_file = tmp_path / "auto_discovery_defaults.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+""")
+
+        config = Config.load(str(config_file))
+
+        assert config.auto_discover is True
+        assert config.discovery_timeout == 3.0
+        assert config.broadcast_port == 9997
+
+    def test_config_auto_discover_true(self, tmp_path):
+        """Load config with auto_discover explicitly set to true."""
+        config_file = tmp_path / "auto_discover_true.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+auto_discover: true
+""")
+
+        config = Config.load(str(config_file))
+        assert config.auto_discover is True
+
+    def test_config_auto_discover_false(self, tmp_path):
+        """Load config with auto_discover explicitly set to false."""
+        config_file = tmp_path / "auto_discover_false.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+auto_discover: false
+""")
+
+        config = Config.load(str(config_file))
+        assert config.auto_discover is False
+
+    def test_config_discovery_timeout_custom(self, tmp_path):
+        """Load config with custom discovery_timeout."""
+        config_file = tmp_path / "discovery_timeout_custom.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+discovery_timeout: 10.0
+""")
+
+        config = Config.load(str(config_file))
+        assert config.discovery_timeout == 10.0
+
+    def test_config_broadcast_port_custom(self, tmp_path):
+        """Load config with custom broadcast_port."""
+        config_file = tmp_path / "broadcast_port_custom.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+broadcast_port: 8888
+""")
+
+        config = Config.load(str(config_file))
+        assert config.broadcast_port == 8888
+
+    def test_config_broadcast_port_validated_in_range(self, tmp_path):
+        """Raise ConfigError for broadcast_port out of valid range."""
+        config_file = tmp_path / "broadcast_port_invalid.yaml"
+        config_file.write_text("""
+local_port: 9999
+remote_host: 192.168.1.100
+remote_port: 9998
+broadcast_port: 0
+""")
+
+        with pytest.raises(ConfigError) as exc_info:
+            Config.load(str(config_file))
+
+        assert "broadcast_port" in str(exc_info.value)
+
+    def test_config_save_includes_auto_discovery_fields(self, tmp_path):
+        """Save config includes auto-discovery fields."""
+        config_file = tmp_path / "save_auto_discovery.yaml"
+
+        config = Config(
+            local_port=9999,
+            remote_host="192.168.1.100",
+            remote_port=9998,
+            auto_discover=False,
+            discovery_timeout=5.0,
+            broadcast_port=8888,
+        )
+
+        config.save(str(config_file))
+
+        # Verify file contains auto-discovery fields
+        content = config_file.read_text()
+        assert "auto_discover: false" in content
+        assert "discovery_timeout: 5.0" in content
+        assert "broadcast_port: 8888" in content
+
+        # Verify it can be loaded back
+        loaded = Config.load(str(config_file))
+        assert loaded.auto_discover is False
+        assert loaded.discovery_timeout == 5.0
+        assert loaded.broadcast_port == 8888

@@ -26,6 +26,9 @@ class Config:
         poll_interval: Clipboard polling interval in seconds.
         sync_cooldown: Anti-loop cooldown time in seconds.
         max_size: Maximum message size in bytes.
+        auto_discover: Whether to enable automatic peer discovery.
+        discovery_timeout: Timeout for peer discovery in seconds.
+        broadcast_port: UDP broadcast port for peer discovery.
     """
 
     local_port: int
@@ -34,11 +37,15 @@ class Config:
     poll_interval: float = 0.5
     sync_cooldown: float = 2.0
     max_size: int = 1048576
+    auto_discover: bool = True
+    discovery_timeout: float = 3.0
+    broadcast_port: int = 9997
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         self._validate_port(self.local_port, "local_port")
         self._validate_port(self.remote_port, "remote_port")
+        self._validate_port(self.broadcast_port, "broadcast_port")
         self._validate_remote_host()
 
     @classmethod
@@ -82,6 +89,9 @@ class Config:
                 poll_interval=float(data.get("poll_interval", 0.5)),
                 sync_cooldown=float(data.get("sync_cooldown", 2.0)),
                 max_size=int(data.get("max_size", 1048576)),
+                auto_discover=bool(data.get("auto_discover", True)),
+                discovery_timeout=float(data.get("discovery_timeout", 3.0)),
+                broadcast_port=int(data.get("broadcast_port", 9997)),
             )
         except (ValueError, TypeError) as e:
             raise ConfigError(f"Invalid value type in configuration: {e}") from e
