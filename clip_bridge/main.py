@@ -16,7 +16,7 @@ import pyperclip
 
 from clip_bridge.config import Config, ConfigError
 from clip_bridge.cooldown import CooldownManager
-from clip_bridge.discovery import UDPAutoDiscovery, DiscoveryConfig, PeerDevice
+from clip_bridge.discovery import UDPAutoDiscovery, DiscoveryConfig
 from clip_bridge.interactive import InteractiveSetup, find_config
 from clip_bridge.monitor import Monitor
 from clip_bridge.protocol import encode_message, ProtocolError
