@@ -1,39 +1,21 @@
-# Clip Bridge Configuration Template
-#
-# Copy this file to create your configuration:
-#   Mac: cp config.yaml.template mac.yaml
-#   Ubuntu: cp config.yaml.template ubuntu.yaml
-#
-# Then edit the values below according to your setup.
+# Clip Bridge 配置文件
+# 用于在局域网内多台电脑之间同步剪贴板内容
 
-# Local port to listen on for incoming clipboard data
-# Mac example: 9999
-# Ubuntu example: 9998
+# 本地监听端口（用于接收来自对端的连接）
 local_port: 9999
 
-# Remote peer IP address or hostname
-# Use the IP address of the other machine on your LAN
-# Examples: 192.168.1.100, 10.0.0.5
+# 对端设备地址（自动发现时会自动更新）
 remote_host: 192.168.1.100
-
-# Remote peer port to connect to
-# This should match the local_port on the other machine
-# Mac connects to Ubuntu's port (e.g., 9998)
-# Ubuntu connects to Mac's port (e.g., 9999)
 remote_port: 9998
 
-# Clipboard polling interval in seconds
-# How often to check for local clipboard changes
-# Default: 0.5 (checks twice per second)
-poll_interval: 0.5
+# 自动发现设置
+auto_discover: true          # 是否启用自动发现
+discovery_timeout: 3.0       # 发现超时时间（秒）
+broadcast_port: 9997         # 广播监听端口
 
-# Anti-loop cooldown time in seconds
-# Prevents sync loops when both machines receive the same content
-# Should be longer than the round-trip sync time
-# Default: 2.0
-sync_cooldown: 2.0
+# 剪贴板监听设置
+poll_interval: 0.5           # 轮询间隔（秒）
+sync_cooldown: 2.0           # 同步冷却时间（秒）
 
-# Maximum message size in bytes
-# Prevents sending very large clipboard content
-# Default: 1048576 (1 MB)
-max_size: 1048576
+# 网络设置
+max_size: 1048576            # 最大消息大小（1MB）
