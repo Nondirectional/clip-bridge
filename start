@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+if [[ "${1:-}" == "mac" || "${1:-}" == "ubuntu" ]]; then
+  set -- "${1}.yaml" "${@:2}"
+fi
+
+if [[ "${1:-}" == "--setup" || "${1:-}" == "-s" ]]; then
+  exec uv run clip-bridge --setup
+fi
+
+if [[ $# -gt 0 ]]; then
+  exec uv run clip-bridge "$@"
+fi
+
+if uv run python -c 'from clip_bridge.interactive import find_config; import sys; sys.exit(0 if find_config(".") else 1)'; then
+  exec uv run clip-bridge
+fi
+
+echo "未检测到可用配置，正在启动配置向导..."
+exec uv run clip-bridge --setup

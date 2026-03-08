@@ -23,6 +23,11 @@ uv sync
 
 ## 快速开始
 
+```bash
+# 一键启动（推荐）
+./start
+```
+
 ### 首次运行
 
 ```bash
@@ -39,14 +44,19 @@ uv run python -m clip_bridge
 
 ### 启动服务
 
+```bash
+# 快捷写法：自动选配置；没配置时自动进入 setup
+./start
+```
+
 **Mac 上：**
 ```bash
-uv run python -m clip_bridge mac.yaml
+./start mac
 ```
 
 **Ubuntu 上：**
 ```bash
-uv run python -m clip_bridge ubuntu.yaml
+./start ubuntu
 ```
 
 ## 配置文件
