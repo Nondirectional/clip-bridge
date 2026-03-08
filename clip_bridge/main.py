@@ -5,6 +5,8 @@ all components (receiver, sender, monitor) and handles signal handling
 for graceful shutdown.
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
 import signal
@@ -14,6 +16,7 @@ import pyperclip
 
 from clip_bridge.config import Config, ConfigError
 from clip_bridge.cooldown import CooldownManager
+from clip_bridge.discovery import UDPAutoDiscovery, DiscoveryConfig, PeerDevice
 from clip_bridge.interactive import InteractiveSetup, find_config
 from clip_bridge.monitor import Monitor
 from clip_bridge.protocol import encode_message, ProtocolError
@@ -53,6 +56,30 @@ class ClipBridge:
             ConfigError: If configuration cannot be loaded or is invalid.
         """
         self._config = Config.load(config_path)
+        self._logger = logging.getLogger(__name__)
+        self._running = False
+
+        # Auto-discovery: find peer device before initializing components
+        if self._config.auto_discover:
+            self._logger.info("[INFO] Auto-discovery enabled")
+            discovery_config = DiscoveryConfig(
+                timeout=self._config.discovery_timeout,
+                broadcast_port=self._config.broadcast_port,
+            )
+            discovery = UDPAutoDiscovery(discovery_config, self._config.local_port)
+            peer = discovery.discover()
+            if peer:
+                self._config.remote_host = peer.ip
+                self._config.remote_port = peer.port
+                self._logger.info(
+                    f"[INFO] Auto-discovered peer: {peer.ip}:{peer.port}"
+                )
+            else:
+                self._logger.info(
+                    "[INFO] No peer discovered, using configured values"
+                )
+
+        # Initialize cooldown manager
         self._cooldown = CooldownManager(
             cooldown_seconds=self._config.sync_cooldown
         )
