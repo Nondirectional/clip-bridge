@@ -98,7 +98,7 @@ class InteractiveSetup:
         config.save(str(config_path))
 
         print(f"\nConfiguration saved to: {config_path}")
-        print(f"\nTo start Clip Bridge, run:")
+        print("\nTo start Clip Bridge, run:")
         print(f"  uv run python -m clip_bridge {config_filename}")
 
         return str(config_path)

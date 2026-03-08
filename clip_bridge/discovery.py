@@ -175,7 +175,6 @@ class UDPAutoDiscovery:
         logger.info(f"[INFO] Starting auto-discovery (timeout={self._config.timeout}s)...")
 
         start_time = time.time()
-        discovered_peer: Optional[PeerDevice] = None
 
         while time.time() - start_time < self._config.timeout:
             # Try listening first (a device may already be broadcasting)

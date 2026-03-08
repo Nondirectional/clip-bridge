@@ -99,7 +99,7 @@ class ClipBridge:
             on_change=self._on_clipboard_change,
         )
 
-        logger.info(f"[INFO] ClipBridge initialized")
+        logger.info("[INFO] ClipBridge initialized")
         logger.info(f"[INFO] Local port: {self._config.local_port}")
         logger.info(f"[INFO] Remote: {self._config.remote_host}:{self._config.remote_port}")
 
